@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高大盲盒：今晚吃什麼？</title>
+    <style>
+        /* 全域風格：純淨黑底，由 JS 動態生成鋪滿的圖示 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #141414; 
+            display: flex;
+            justify-content: center;
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0;
+            padding: 40px 20px; 
+            box-sizing: border-box;
+            color: #ffffff; 
+            overflow-x: hidden; 
+        }
+
+        /* 背景磁磚容器 (Flex 排版) */
+        #bg-stickers {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0; 
+            pointer-events: none; 
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start; /* 從左上角開始緊密排列 */
+        }
+
+        /* 每一格背景 GIF 的設定 */
+        .bg-sticker {
+            width: 120px; /* 統一尺寸 */
+            height: 120px;
+            object-fit: cover; /* 確保圖案不變形 */
+            opacity: 0.25; /* 降低透明度，當作舒服的背景底紋 */
+        }
+
+        /* 雙欄排版的容器 */
+        .main-wrapper {
+            display: flex;
+            gap: 40px; 
+            width: 100%;
+            max-width: 1100px; 
+            justify-content: center;
+            align-items: flex-start; 
+            z-index: 10; 
+            position: relative;
+        }
+
+        /* 左側：測驗區 */
+        .container {
+            background-color: #222222; 
+            padding: 50px 40px; 
+            border: 3px solid #ffffff;
+            width: 100%;
+            max-width: 550px; 
+            text-align: center;
+            box-sizing: border-box;
+            flex-shrink: 0; 
+            box-shadow: 10px 10px 0px #ffe600; 
+        }
+
+        /* 右側：目錄區塊 */
+        .directory-container {
+            background-color: #1a1a1a; 
+            padding: 30px 25px;
+            border: 3px solid #555555;
+            width: 100%;
+            max-width: 450px; 
+            height: 75vh; 
+            max-height: 700px;
+            overflow-y: auto; 
+            box-sizing: border-box;
+            text-align: left;
+            box-shadow: 8px 8px 0px #333333;
+        }
+
+        .directory-container::-webkit-scrollbar { width: 8px; }
+        .directory-container::-webkit-scrollbar-track { background: #1a1a1a; border-left: 2px solid #444; }
+        .directory-container::-webkit-scrollbar-thumb { background: #ffe600; }
+
+        .progress {
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #141414; 
+            margin-bottom: 25px;
+            background: #ffe600; 
+            display: inline-block;
+            padding: 5px 12px;
+            border: 2px solid #ffffff;
+        }
+
+        h2 {
+            font-size: 26px;
+            font-weight: 900;
+            margin: 10px 0 35px 0;
+            line-height: 1.5;
+            min-height: 78px;
+            color: #ffffff;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 25px 15px;
+            border: 3px solid #ffffff;
+            background-color: #222222;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            box-shadow: 5px 5px 0px #ffe600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+
+        .btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 7px 7px 0px #ffffff; 
+            background-color: #ffe600;
+            color: #141414;
+        }
+
+        .btn:active {
+            transform: translate(5px, 5px);
+            box-shadow: 0px 0px 0px transparent;
+        }
+
+        .btn-action {
+            width: 100%;
+            margin-top: 20px;
+            padding: 18px 10px;
+            text-decoration: none;
+            box-sizing: border-box;
+            box-shadow: 5px 5px 0px #ffffff; 
+            font-size: 18px;
+        }
+
+        .btn-map { background-color: #ff4757; color: white; }
+        .btn-map:hover { background-color: #ff6b81; color: #141414; box-shadow: 7px 7px 0px #ffe600; }
+
+        .btn-restart { background-color: #10ac84; color: white; }
+        .btn-restart:hover { background-color: #1dd1a1; color: #141414; box-shadow: 7px 7px 0px #ffe600; }
+
+        #result-section { display: none; }
+
+        .restaurant-name {
+            font-size: 32px;
+            font-weight: 900;
+            color: #ffffff;
+            margin: 15px 0;
+            text-decoration: underline;
+            text-decoration-thickness: 5px;
+            text-decoration-color: #ffe600;
+        }
+
+        .restaurant-address {
+            font-size: 15px;
+            font-weight: 600;
+            color: #aaaaaa; 
+            margin-bottom: 25px;
+        }
+
+        .restaurant-desc {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #e0e0e0;
+            background: #333333;
+            border: 2px dashed #ffffff;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .directory-header {
+            font-size: 22px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            color: #ffffff;
+            border-bottom: 3px solid #555;
+            padding-bottom: 15px;
+            position: sticky; 
+            top: 0;
+            background-color: #1a1a1a; 
+            z-index: 10;
+        }
+        
+        .dir-category {
+            color: #ffe600;
+            font-weight: 900;
+            font-size: 16px;
+            margin: 25px 0 10px 0;
+            letter-spacing: 1px;
+        }
+        .dir-category:first-child { margin-top: 0; }
+        
+        .dir-card {
+            background: #222222;
+            border: 2px solid #555555;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+        }
+        .dir-card-name {
+            font-weight: 800;
+            font-size: 16px;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        .dir-card-address {
+            font-size: 13px;
+            color: #888888;
+        }
+
+        .pop-in { animation: popInAnim 0.3s ease-out; }
+        @keyframes popInAnim {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 1000px) {
+            .main-wrapper {
+                flex-direction: column;
+                align-items: center;
+                padding: 0px; 
+            }
+            .directory-container {
+                max-width: 550px; 
+                height: 50vh; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="bg-stickers"></div>
+
+<div class="main-wrapper">
+    <div class="container">
+        <div id="question-section" class="pop-in">
+            <div class="progress" id="progress-text">LOADING</div>
+            <h2 id="question-text">選個選項，等等吃好料...</h2>
+            
+            <div class="button-group">
+                <button class="btn" id="btn-a" onclick="selectAnswer('A')">選項 A</button>
+                <button class="btn" id="btn-b" onclick="selectAnswer('B')">選項 B</button>
+            </div>
+        </div>
+
+        <div id="result-section" class="pop-in">
+            <div class="progress">MATCHED!</div>
+            <h2>✨ 今晚空投這家到你胃裡 ✨</h2>
+            
+            <div class="restaurant-name" id="restaurant-name">餐廳名稱</div>
+            <div class="restaurant-address">📍 <span id="restaurant-address">餐廳地址</span></div>
+            <div class="restaurant-desc" id="restaurant-desc">餐廳描述</div>
+            
+            <a href="#" class="btn btn-action btn-map" id="map-link" target="_blank">帶我導航去</a>
+            <button class="btn btn-action btn-restart" onclick="location.reload()">換一家，重新抽</button>
+        </div>
+    </div>
+
+    <div class="directory-container" id="directory-container">
+        <div class="directory-header">📋 餐廳全目錄</div>
+        <div id="directory-list"></div>
+    </div>
+</div>
+
+<script>
+    /* =========================================
+       背景磁磚拼接生成器 (Tiled Background)
+       ========================================= */
+    const stickerUrls = [
+        "https://cdn.discordapp.com/attachments/1512750811497893979/1515541288773095595/IMG_7359.gif?ex=6a389bd0&is=6a374a50&hm=5ab8ca2f1cac0f4e1c2390ecead5818e2f94853cec11823490f1858dace1bdb8&",
+        "https://cdn.discordapp.com/attachments/1091270382885027991/1514591027002867712/IMG_7348.gif?ex=6a387290&is=6a372110&hm=270419dbb5a974a2abcfefb90b9d08da313879d96b33997e554c66a3d5f74e6b&"
+    ];
+
+    function generateTiledBackground() {
+        const bgContainer = document.getElementById('bg-stickers');
+        bgContainer.innerHTML = ''; // 每次重新生成時先清空
+
+        const stickerSize = 120; // 必須與 CSS 中的 .bg-sticker 寬高一致
+        // 計算螢幕能塞下多少行與列 (多加 1 確保邊緣不留白)
+        const cols = Math.ceil(window.innerWidth / stickerSize) + 1;
+        const rows = Math.ceil(window.innerHeight / stickerSize) + 1;
+        const totalStickers = cols * rows;
+
+        for (let i = 0; i < totalStickers; i++) {
+            const img = document.createElement('img');
+            // 依序循環這 4 張圖
+            img.src = stickerUrls[i % stickerUrls.length];
+            img.className = 'bg-sticker';
+            bgContainer.appendChild(img);
+        }
+    }
+    
+    // 網頁載入時啟動背景磁磚生成
+    generateTiledBackground();
+    
+    // 當螢幕大小改變時（例如手機轉向或拉動視窗），自動重新鋪滿背景
+    window.addEventListener('resize', generateTiledBackground);
+
+
+    /* =========================================
+       測驗邏輯與資料庫
+       ========================================= */
+    const coreQuestions = [
+        { text: "今天主食想吃什麼？", optionA: "大口扒飯", optionB: "大口吸麵" },
+        { text: "口味想走哪種路線？", optionA: "清爽沒負擔", optionB: "濃郁重口味" },
+        { text: "摸摸荷包，看今天的預算？", optionA: "省錢吃飽飽", optionB: "奢侈一下下" }
+    ];
+
+    const randomQuestionPool = [
+        { text: "遇到分組報告，你通常是？", optionA: "心累的組長", optionB: "安靜的組員" },
+        { text: "看劇或看影片時，你的習慣？", optionA: "沒字幕不行", optionB: "看畫面就好" },
+        { text: "買飲料時，你通常都點？", optionA: "就是要加冰", optionB: "絕對去冰" },
+        { text: "放假窩在家，突然有人約？", optionA: "馬上下床出門", optionB: "秒找理由拒絕" },
+        { text: "如果中了威力彩頭獎，你會？", optionA: "低調繼續生活", optionB: "馬上原地離職" },
+        { text: "手機電量低於多少你會焦慮？", optionA: "80% 就開始慌", optionB: "1% 依然淡定" },
+        { text: "出門旅行，你屬於哪一種？", optionA: "精準排定行程", optionB: "隨興走到哪算哪" },
+        { text: "睡覺時，房間的燈光必須？", optionA: "伸手不見五指", optionB: "一定要留小燈" }
+    ];
+
+    const restaurantDB = {
+        'AAA': [
+            { name: '香Q食邱健康餐盒', address: '高雄市楠梓區大學南路', desc: '低卡首選！調味剛好不無聊，少油少鹽讓你吃得超有飽足感又沒罪惡感。' },
+            { name: '健人餐廚 (楠梓店)', address: '高雄市楠梓區大學東路238號', desc: '高大周邊超夯健康便當！肉質舒肥得超軟嫩，蔬菜種類多，運動完吃這家最推。' },
+            { name: '少點鹽 健康餐盒專賣', address: '高雄市楠梓區惠民路', desc: '食材非常新鮮，吃得到蔬菜原本的清甜，想控制熱量時點這家絕不踩雷。' }
+        ],
+        'AAB': [
+            { name: '走廊倉廚 (楠梓參號倉)', address: '高雄市楠梓區大學東路203號', desc: '高大人的聚餐經典！工業風環境超舒適，他們家的燉飯香濃精緻，適合好好吃一頓。' },
+            { name: '築間幸福鍋物 (楠梓藍昌店)', address: '高雄市楠梓區藍昌路369號', desc: '冷氣超強、海鮮跟肉質都在水準之上。最讚的是有自助蔬菜滑瀑吃到飽，大滿足！' },
+            { name: '聽見花開 Blooming', address: '高雄市楠梓區土庫路214號', desc: '藏在巷弄裡的超美蔬食餐廳，充滿夢幻多肉植物，燉飯與輕食精緻美味，儀式感滿分。' }
+        ],
+        'ABA': [
+            { name: '陳麻飯 (楠梓惠民店)', address: '高雄市楠梓區惠民路118號', desc: '高大學生的重口味廚房！麻婆豆腐飯辣中帶麻，椒麻雞外酥內嫩，便宜大碗、白飯殺手。' },
+            { name: '鄧園休閒餐飲 (德民店)', address: '高雄市楠梓區德民路602號', desc: '楠梓排隊便當傳奇！主菜炸排骨、滷雞腿味道超夠，配菜任選，絕對能餵飽飢餓的胃。' },
+            { name: '梁社漢排骨 (楠梓藍昌店)', address: '高雄市楠梓區藍昌路', desc: '想不到吃什麼時的標準答案。排骨厚實多汁，配上酸菜與滷汁非常下飯，點餐超快。' },
+            { name: '京城滷肉飯', address: '高雄市楠梓區藍田路', desc: '傳統肉燥帶有南部特有的迷人微甜，膠質在嘴裡化開，配上一顆半熟蛋堪稱完美。' }
+        ],
+        'ABB': [
+            { name: '八八口頂級燒肉', address: '高雄市楠梓區德民路858號', desc: '今天就是要報復性吃肉！韓式燒肉吃到飽，肉汁在烤盤上滋滋作響，配白飯爽度破表。' },
+            { name: '森川丼丼 (楠梓總店)', address: '高雄市楠梓區楠都東街167號', desc: '視覺與味覺的雙重暴擊！浮誇系炙燒鮭魚丼、生魚片堆得像山一樣，日式醬汁濃郁極致。' },
+            { name: '燒肉Smile (楠梓店)', address: '高雄市楠梓區大學東路', desc: '邊緣人福音！高級感爆棚的個人精緻燒肉，點一套海陸套餐，邊烤邊配熱騰騰的越光米。' }
+        ],
+        'BAA': [
+            { name: '阿華越南河粉', address: '高雄市楠梓區創新路', desc: '台糖對面的隱藏好店！生牛肉河粉湯頭自然鮮甜，擠上檸檬汁、拔幾片九層塔，清爽無比。' },
+            { name: '來呷麵', address: '高雄市楠梓區大學東路', desc: '充滿家常溫暖的小麵店，麵條激Q，簡單的榨菜肉絲麵或麻醬麵就非常耐吃，便宜大碗。' },
+            { name: '三商巧福 (楠梓家樂福店)', address: '高雄市楠梓區藍田路288號', desc: '老牌的安全牌選擇。原汁牛肉麵水準穩定，精髓是一定要加爆他們家的酸菜才對味。' }
+        ],
+        'BAB': [
+            { name: '小聚食光', address: '高雄市楠梓區大學東路206號', desc: '大學東路上的質感小店！義大利麵醬汁都是手工熬煮，吃得出自然鮮甜，環境溫馨放鬆。' },
+            { name: 'NU PASTA (楠梓藍昌店)', address: '高雄市楠梓區藍昌路398號', desc: '採光好、空間寬敞。義大利麵和筆管麵選擇非常多，點杯飲料可以跟朋友舒舒服服聊很久。' },
+            { name: '洋城義大利餐廳', address: '高雄市楠梓區藍田路288號', desc: '藏在家樂福裡面，餐點選擇超豐富，升級套餐有濃湯、麵包跟甜點，適合家庭或大群人聚餐。' }
+        ],
+        'BBA': [
+            { name: '久碗台味麵舖', address: '高雄市楠梓區藍昌路', desc: '藍昌路神級麵鋪！招牌皮蛋花椒拌麵麻辣夠味，燒肉蔥油乾拌麵香氣直衝腦門，必吃。' },
+            { name: '北平楊寶寶蒸餃', address: '高雄市楠梓區朝明路106號', desc: '楠梓之光！蒸餃一咬直接噴汁，豬肉跟牛肉內餡調味極重極香，酸辣湯跟牛肉麵也超濃郁。' },
+            { name: '五花馬水餃館 (德民店)', address: '高雄市楠梓區德民路', desc: '手工水餃大顆飽滿，炸醬麵和牛肉捲餅醬汁濃郁、餅皮酥脆，現場還有免費小米粥隨你喝。' },
+            { name: '元氣麵疙瘩 (楠梓店)', address: '高雄市楠梓區惠民路', desc: '麵疙瘩超級有嚼勁，在嘴裡彈性十足。沙茶或海鮮濃湯頭超級夠味，吸飽湯汁非常過癮。' }
+        ],
+        'BBB': [
+            { name: '桂桃嬤販麵洋行', address: '高雄市楠梓區德民路', desc: '南洋與台味的夢幻連動！馬來西亞參巴醬拌麵、南洋咖哩湯麵，酸辣濃郁，店內裝潢超台超好拍。' },
+            { name: '初原麵場 (楠梓藍田店)', address: '高雄市楠梓區藍田路1005號', desc: '日式屋台風格拉麵，焙煎豚骨湯頭厚實濃郁，叉燒經過炙燒香氣逼人，深夜來一碗超罪惡。' },
+            { name: '九湯屋日本拉麵', address: '高雄市楠梓區藍田路', desc: '平價日式拉麵代表，地獄風味或東京豚骨湯頭都非常濃稠夠味，麵條完美吸附湯汁。' }
+        ]
+    };
+
+    const categoryNames = {
+        'AAA': '飯食 ╳ 清淡 ╳ 平價',
+        'AAB': '飯食 ╳ 清淡 ╳ 大餐',
+        'ABA': '飯食 ╳ 重口味 ╳ 平價',
+        'ABB': '飯食 ╳ 重口味 ╳ 大餐',
+        'BAA': '麵食 ╳ 清淡 ╳ 平價',
+        'BAB': '麵食 ╳ 清淡 ╳ 大餐',
+        'BBA': '麵食 ╳ 重口味 ╳ 平價',
+        'BBB': '麵食 ╳ 重口味 ╳ 大餐'
+    };
+
+    let activeQuestions = [];
+    let currentQuestionIndex = 0;
+    let userAnswers = ""; 
+
+    function initQuiz() {
+        let shuffledPool = [...randomQuestionPool].sort(() => 0.5 - Math.random());
+        let selectedRandomQuestions = shuffledPool.slice(0, 3);
+        activeQuestions = [...coreQuestions, ...selectedRandomQuestions];
+        renderQuestion();
+        buildDirectory();
+    }
+
+    function triggerAnimation(elementId) {
+        const el = document.getElementById(elementId);
+        el.classList.remove('pop-in');
+        void el.offsetWidth; 
+        el.classList.add('pop-in');
+    }
+
+    function renderQuestion() {
+        if (currentQuestionIndex >= activeQuestions.length) {
+            showResult();
+            return;
+        }
+        
+        triggerAnimation('question-section');
+
+        const q = activeQuestions[currentQuestionIndex];
+        document.getElementById('progress-text').innerText = `PROGRESS: 0${currentQuestionIndex + 1} / 0${activeQuestions.length}`;
+        document.getElementById('question-text').innerText = q.text;
+        
+        document.getElementById('btn-a').innerText = q.optionA;
+        document.getElementById('btn-b').innerText = q.optionB;
+    }
+
+    function selectAnswer(choice) {
+        userAnswers += choice; 
+        currentQuestionIndex++; 
+        renderQuestion();
+    }
+
+    function showResult() {
+        document.getElementById('question-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
+
+        const coreFoodAnswer = userAnswers.substring(0, 3);
+        const restaurantList = restaurantDB[coreFoodAnswer];
+        const randomElement = restaurantList[Math.floor(Math.random() * restaurantList.length)];
+
+        document.getElementById('restaurant-name').innerText = randomElement.name;
+        document.getElementById('restaurant-address').innerText = randomElement.address;
+        document.getElementById('restaurant-desc').innerText = randomElement.desc;
+        
+        const mapQuery = encodeURIComponent(randomElement.name + " " + randomElement.address);
+        document.getElementById('map-link').href = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
+    }
+
+    function buildDirectory() {
+        const listDiv = document.getElementById('directory-list');
+        listDiv.innerHTML = '';
+        
+        for (const [key, restaurants] of Object.entries(restaurantDB)) {
+            const catName = categoryNames[key];
+            let html = `<div class="dir-category">${catName}</div>`;
+            
+            restaurants.forEach(r => {
+                html += `
+                <div class="dir-card">
+                    <div class="dir-card-name">${r.name}</div>
+                    <div class="dir-card-address">${r.address}</div>
+                </div>`;
+            });
+            listDiv.innerHTML += html;
+        }
+    }
+
+    initQuiz();
+</script>
+
+</body>
+</html>
